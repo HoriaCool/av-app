@@ -1,0 +1,119 @@
+####################################################################################
+# The MIT License (MIT)                                                            #
+#                                                                                  #
+# Copyright (c) 2021 Nedelcu Horia Alexandru - (nedelcu.horia.alexandru@gmail.com) #
+#                                                                                  #
+# Permission is hereby granted, free of charge, to any person obtaining a copy     #
+# of this software and associated documentation files (the "Software"), to deal    #
+# in the Software without restriction, including without limitation the rights     #
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell        #
+# copies of the Software, and to permit persons to whom the Software is            #
+# furnished to do so, subject to the following conditions:                         #
+#                                                                                  #
+# The above copyright notice and this permission notice shall be included in       #
+# all copies or substantial portions of the Software.                              #
+#                                                                                  #
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR       #
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,         #
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE      #
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER           #
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,    #
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN        #
+# THE SOFTWARE.                                                                    #
+####################################################################################
+
+
+# compiler #
+CC = g++
+
+# paths #
+SRC_PATH   = src
+BUILD_PATH = build
+BIN_PATH   = bin
+LOGS_PATH  = logs
+
+# executable #
+BIN_NAME = main
+
+# extensions #
+SRC_EXT = cpp
+
+# sources #
+# Find all source files in the source directory,
+# sorted by most recently modified
+SOURCES = $(shell find $(SRC_PATH) -name '*.$(SRC_EXT)' \
+	| sort -k 1nr | cut -f2-)
+
+# objects #
+# Set the object file names, with the source directory stripped
+# from the path, and the build path prepended in its place
+OBJECTS = $(SOURCES:$(SRC_PATH)/%.$(SRC_EXT)=$(BUILD_PATH)/%.o)
+
+# flags #
+COMPILE_FLAGS = -Wall -Wextra -g
+VALGRIND_FLAGS = --leak-check=full --show-leak-kinds=all \
+	--log-file=$(LOGS_PATH)/$(basename $(BIN_NAME))_%p.vg.log
+
+# libraries #
+# Space-separated pkg-config libraries used by this project
+LIBS = -pthread
+
+# local headers #
+INCLUDES = include $(SRC_PATH:%=-I %)
+
+# command line arguments #
+# Easy to modify from shell
+# E.g. make run ARGS="arg1 arg2 arg3"
+ARGS = # set default
+
+
+.PHONY: default_target
+default_target: release
+
+.PHONY: release
+release: export CFLAGS := $(COMPILE_FLAGS) $(CFLAGS)
+release: export LDFLAGS := $(LIBS) $(LDFLAGS)
+release: dirs all
+
+.PHONY: dirs
+dirs:
+	@echo "Creating directories"
+	@mkdir -p $(dir $(OBJECTS))
+	@mkdir -p $(BIN_PATH)
+
+.PHONY: clean
+clean:
+	@echo "Deleting $(BIN_NAME) symlink"
+	@$(RM) $(BIN_NAME)
+	@echo "Deleting directories"
+	@$(RM) -r $(BUILD_PATH)
+	@$(RM) -r $(BIN_PATH)
+	@$(RM) -r $(LOGS_PATH)
+
+.PHONY: run
+run:
+	@echo "Run $(BIN_NAME)"
+	@./$(BIN_NAME) $(ARGS)
+
+.PHONY: run_vg
+run_vg:
+	@echo "Run valgrind $(BIN_NAME)"
+	@mkdir -p $(LOGS_PATH)
+	@valgrind $(VALGRIND_FLAGS) ./$(BIN_NAME) $(ARGS)
+
+# Checks the executable and symlinks to the output
+.PHONY: all
+all: $(BIN_PATH)/$(BIN_NAME)
+	@echo "Making symlink: $(BIN_NAME) -> $<"
+	@$(RM) $(BIN_NAME)
+	@ln -s $(BIN_PATH)/$(BIN_NAME) $(BIN_NAME)
+
+# Creation of the executable
+$(BIN_PATH)/$(BIN_NAME): $(OBJECTS)
+	@echo "Linking: $@"
+	@$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
+
+# Source file rules
+$(BUILD_PATH)/%.o: $(SRC_PATH)/%.$(SRC_EXT)
+	@echo "Compiling: $< -> $@"
+	@$(CC) -I $(INCLUDES) $(CFLAGS) -c $< -o $@
