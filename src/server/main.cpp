@@ -1,11 +1,12 @@
-#include <iostream>
-#include "utils/utils.hpp"
+#include "TCPServer.hpp"
 
-int main(int argc, char *argv[])
+
+int main()
 {
-	std::cout << "Hello from server! args: " << argv[argc - 1] << "\n";
+	TCPServer server;
 
-	ASSERT(1, "test assert");
+	server.init();
+	server.run();
 
 	return 0;
 }

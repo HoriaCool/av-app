@@ -32,6 +32,7 @@ release:
 
 .PHONY: clean
 clean:
+	@$(RM) -f recv/*.txt
 	@$(MAKE) clean BIN_NAME="$(CLIENT_BIN_NAME)"
 	@echo ""
 	@$(MAKE) clean BIN_NAME="$(SERVER_BIN_NAME)"

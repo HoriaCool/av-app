@@ -16,3 +16,6 @@
 			std::terminate();					\
 		}								\
 	} while (0)
+
+
+const char* convert_addr_ntop(struct sockaddr_in *addr, char *src_ip_buf);
